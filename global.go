@@ -1,119 +1,119 @@
 package log
 
-var global = New(AddCallerSkip(1))
+var global = New()
 
 func SetOptions(opts ...Option) {
 	global = global.WithOptions(opts...)
 }
 
 func Debug(args ...interface{}) {
-	global.Debug(args...)
+	global.debug(global.logger, args...)
 }
 
 func Debugf(format string, args ...interface{}) {
-	global.Debugf(format, args...)
+	global.debugf(global.logger, format, args...)
 }
 
 func Debugln(args ...interface{}) {
-	global.Debugln(args...)
+	global.debug(global.logger, sprintln(args...))
 }
 
 func Debugw(msg string, keysAndValues ...interface{}) {
-	global.Debugw(msg, keysAndValues...)
+	global.debugw(global.logger, msg, keysAndValues...)
 }
 
 func Info(args ...interface{}) {
-	global.Info(args...)
+	global.info(global.logger, args...)
 }
 
 func Infof(format string, args ...interface{}) {
-	global.Infof(format, args...)
+	global.infof(global.logger, format, args...)
 }
 
 func Infoln(args ...interface{}) {
-	global.Infoln(args...)
+	global.info(global.logger, sprintln(args...))
 }
 
 func Infow(msg string, keysAndValues ...interface{}) {
-	global.Infow(msg, keysAndValues...)
+	global.infow(global.logger, msg, keysAndValues...)
 }
 
 func Warn(args ...interface{}) {
-	global.Warn(args...)
+	global.warn(global.logger, args...)
 }
 
 func Warnf(template string, args ...interface{}) {
-	global.Warnf(template, args...)
+	global.warnf(global.logger, template, args...)
 }
 
 func Warnln(args ...interface{}) {
-	global.Warnln(args...)
+	global.warn(global.logger, sprintln(args...))
 }
 
 func Warnw(msg string, keysAndValues ...interface{}) {
-	global.Warnw(msg, keysAndValues...)
+	global.warnw(global.logger, msg, keysAndValues...)
 }
 
 func Error(args ...interface{}) {
-	global.Error(args...)
+	global.error(global.logger, args...)
 }
 
 func Errorf(template string, args ...interface{}) {
-	global.Errorf(template, args...)
+	global.errorf(global.logger, template, args...)
 }
 
 func Errorln(args ...interface{}) {
-	global.Errorln(args...)
+	global.error(global.logger, sprintln(args...))
 }
 
 func Errorw(msg string, keysAndValues ...interface{}) {
-	global.Errorw(msg, keysAndValues...)
+	global.errorw(global.logger, msg, keysAndValues...)
 }
 
 func DPanic(args ...interface{}) {
-	global.DPanic(args...)
+	global.dpanic(global.logger, args...)
 }
 
 func DPanicf(template string, args ...interface{}) {
-	global.DPanicf(template, args...)
+	global.dpanicf(global.logger, template, args...)
 }
 
 func DPanicln(args ...interface{}) {
-	global.DPanicln(args...)
+	global.dpanic(global.logger, sprintln(args...))
 }
 
 func DPanicw(msg string, keysAndValues ...interface{}) {
-	global.DPanicw(msg, keysAndValues...)
+	global.dpanicw(global.logger, msg, keysAndValues...)
 }
 
 func Panic(args ...interface{}) {
-	global.Panic(args...)
+	global.panic(global.logger, args...)
 }
 
 func Panicf(template string, args ...interface{}) {
-	global.Panicf(template, args...)
+	global.panicf(global.logger, template, args...)
 }
 
 func Panicln(args ...interface{}) {
-	global.Panicln(args...)
+	global.panic(global.logger, sprintln(args...))
 }
 
 func Panicw(msg string, keysAndValues ...interface{}) {
-	global.Panicw(msg, keysAndValues...)
+	global.panicw(global.logger, msg, keysAndValues...)
 }
 
 func Fatal(args ...interface{}) {
-	global.Fatal(args...)
+	global.fatal(global.logger, args...)
 }
 
 func Fatalf(template string, args ...interface{}) {
-	global.Fatalf(template, args...)
+	global.fatalf(global.logger, template, args...)
 }
 
 func Fatalln(args ...interface{}) {
-	global.Fatalln(args...)
+	global.fatal(global.logger, sprintln(args...))
 }
 
 func Fatalw(msg string, keysAndValues ...interface{}) {
-	global.Fatalw(msg, keysAndValues...)
+	global.fatalw(global.logger, msg, keysAndValues...)
 }

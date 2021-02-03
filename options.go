@@ -25,8 +25,12 @@ func WithFormat(format Format) Option {
 }
 
 func Development() Option {
+	return WithDevelopment(true)
+}
+
+func WithDevelopment(development bool) Option {
 	return optionFunc(func(l *Logger) {
-		l.development = true
+		l.development = development
 	})
 }
 
