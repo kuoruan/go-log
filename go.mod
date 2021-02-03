@@ -1,6 +1,6 @@
-module go.kuoruan.com/log
+module go.kuoruan.net/log
 
-go 1.15
+go 1.13
 
 require (
 	github.com/natefinch/lumberjack v0.0.0-20201021141957-47ffae23317c
