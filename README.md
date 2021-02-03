@@ -3,7 +3,7 @@
 ## Installation
 
 ```
-go get -u go.kuoruan.net/go
+go get -u go.kuoruan.net/log
 ```
 
 ## Quick Start
