@@ -1,17 +1,9 @@
 package log
 
-var global = New()
+var global = New(AddCallerSkip(1))
 
-func WithOptions(opts ...Option) {
-	for _, o := range opts {
-		o.apply(global)
-	}
-
-	global.NotifyOptionsChange()
-}
-
-func NotifyOptionsChange() {
-	global.initZapLogger()
+func SetOptions(opts ...Option) {
+	global = global.WithOptions(opts...)
 }
 
 func Debug(args ...interface{}) {

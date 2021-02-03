@@ -14,32 +14,32 @@ func (f optionFunc) apply(log *Logger) {
 
 func WithLevel(lvl Level) Option {
 	return optionFunc(func(l *Logger) {
-		l.Level = lvl
+		l.level = lvl
 	})
 }
 
 func WithFormat(format Format) Option {
 	return optionFunc(func(l *Logger) {
-		l.Format = format
+		l.format = format
 	})
 }
 
-func WithDevelopment(development bool) Option {
+func Development() Option {
 	return optionFunc(func(l *Logger) {
-		l.Development = development
+		l.development = true
 	})
 }
 
 func WithOutput(infoOut, errOut io.Writer) Option {
 	return optionFunc(func(l *Logger) {
-		l.InfoOutput = infoOut
-		l.ErrOutput = errOut
+		l.infoOutput = infoOut
+		l.errOutput = errOut
 	})
 }
 
 func WithLogToConsole(logToConsole bool) Option {
 	return optionFunc(func(l *Logger) {
-		l.LogToConsole = logToConsole
+		l.logToConsole = logToConsole
 	})
 }
 
@@ -48,33 +48,42 @@ func WithLogDirs(dirs ...string) Option {
 		d := make([]string, len(dirs))
 		copy(d, dirs)
 
-		l.LogDirs = d
+		l.logDirs = d
 	})
 }
 
 func WithRotationConfig(config RotationConfig) Option {
 	return optionFunc(func(l *Logger) {
-		c := defaultRotationConfig
-
 		if config.MaxAge > 0 {
-			c.MaxAge = config.MaxAge
+			l.maxAge = config.MaxAge
 		}
 
 		if config.MaxBackups > 0 {
-			c.MaxBackups = config.MaxBackups
+			l.maxBackups = config.MaxBackups
 		}
 
 		if config.MaxSize > 0 {
-			c.MaxSize = config.MaxSize
+			l.maxSize = config.MaxSize
 		}
 
-		l.RotationConfig = &c
+		l.compress = config.Compress
+		l.localTime = config.LocalTime
 	})
 }
 
 func WithCaller(caller bool) Option {
 	return optionFunc(func(l *Logger) {
-		l.Caller = caller
+		l.addCaller = caller
+	})
+}
+
+func AddCaller() Option {
+	return WithCaller(true)
+}
+
+func AddCallerSkip(skip int) Option {
+	return optionFunc(func(l *Logger) {
+		l.callerSkip += skip
 	})
 }
 
@@ -84,12 +93,4 @@ type RotationConfig struct {
 	MaxBackups int  `json:"maxBackups"` // count
 	LocalTime  bool `json:"localTime"`
 	Compress   bool `json:"compress"`
-}
-
-var defaultRotationConfig = RotationConfig{
-	MaxSize:    500,
-	MaxAge:     28,
-	MaxBackups: 3,
-	LocalTime:  true,
-	Compress:   true,
 }

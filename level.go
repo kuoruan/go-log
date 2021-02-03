@@ -19,6 +19,10 @@ const (
 	FatalLevel
 )
 
+func (l Level) Enabled(lvl Level) bool {
+	return lvl >= l
+}
+
 func ParseLevel(lvl string) (Level, error) {
 	switch strings.ToLower(lvl) {
 	case "fatal":
