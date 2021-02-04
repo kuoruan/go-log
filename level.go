@@ -41,7 +41,7 @@ func ParseLevel(lvl string) (Level, error) {
 		return DebugLevel, nil
 	}
 
-	return DebugLevel, fmt.Errorf("not a valid Level: %q", lvl)
+	return InfoLevel, fmt.Errorf("not a valid Level: %q", lvl)
 }
 
 func fromZapLevel(lvl zapcore.Level) Level {

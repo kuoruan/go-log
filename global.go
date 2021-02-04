@@ -7,113 +7,117 @@ func SetOptions(opts ...Option) {
 }
 
 func Debug(args ...interface{}) {
-	global.debug(global.logger, args...)
+	global.debug(global.base, args...)
 }
 
 func Debugf(format string, args ...interface{}) {
-	global.debugf(global.logger, format, args...)
+	global.debugf(global.base, format, args...)
 }
 
 func Debugln(args ...interface{}) {
-	global.debug(global.logger, sprintln(args...))
+	global.debug(global.base, sprintln(args...))
 }
 
 func Debugw(msg string, keysAndValues ...interface{}) {
-	global.debugw(global.logger, msg, keysAndValues...)
+	global.debugw(global.base, msg, keysAndValues...)
 }
 
 func Info(args ...interface{}) {
-	global.info(global.logger, args...)
+	global.info(global.base, args...)
 }
 
 func Infof(format string, args ...interface{}) {
-	global.infof(global.logger, format, args...)
+	global.infof(global.base, format, args...)
 }
 
 func Infoln(args ...interface{}) {
-	global.info(global.logger, sprintln(args...))
+	global.info(global.base, sprintln(args...))
 }
 
 func Infow(msg string, keysAndValues ...interface{}) {
-	global.infow(global.logger, msg, keysAndValues...)
+	global.infow(global.base, msg, keysAndValues...)
 }
 
 func Warn(args ...interface{}) {
-	global.warn(global.logger, args...)
+	global.warn(global.base, args...)
 }
 
 func Warnf(template string, args ...interface{}) {
-	global.warnf(global.logger, template, args...)
+	global.warnf(global.base, template, args...)
 }
 
 func Warnln(args ...interface{}) {
-	global.warn(global.logger, sprintln(args...))
+	global.warn(global.base, sprintln(args...))
 }
 
 func Warnw(msg string, keysAndValues ...interface{}) {
-	global.warnw(global.logger, msg, keysAndValues...)
+	global.warnw(global.base, msg, keysAndValues...)
 }
 
 func Error(args ...interface{}) {
-	global.error(global.logger, args...)
+	global.error(global.base, args...)
 }
 
 func Errorf(template string, args ...interface{}) {
-	global.errorf(global.logger, template, args...)
+	global.errorf(global.base, template, args...)
 }
 
 func Errorln(args ...interface{}) {
-	global.error(global.logger, sprintln(args...))
+	global.error(global.base, sprintln(args...))
 }
 
 func Errorw(msg string, keysAndValues ...interface{}) {
-	global.errorw(global.logger, msg, keysAndValues...)
+	global.errorw(global.base, msg, keysAndValues...)
 }
 
 func DPanic(args ...interface{}) {
-	global.dpanic(global.logger, args...)
+	global.dpanic(global.base, args...)
 }
 
 func DPanicf(template string, args ...interface{}) {
-	global.dpanicf(global.logger, template, args...)
+	global.dpanicf(global.base, template, args...)
 }
 
 func DPanicln(args ...interface{}) {
-	global.dpanic(global.logger, sprintln(args...))
+	global.dpanic(global.base, sprintln(args...))
 }
 
 func DPanicw(msg string, keysAndValues ...interface{}) {
-	global.dpanicw(global.logger, msg, keysAndValues...)
+	global.dpanicw(global.base, msg, keysAndValues...)
 }
 
 func Panic(args ...interface{}) {
-	global.panic(global.logger, args...)
+	global.panic(global.base, args...)
 }
 
 func Panicf(template string, args ...interface{}) {
-	global.panicf(global.logger, template, args...)
+	global.panicf(global.base, template, args...)
 }
 
 func Panicln(args ...interface{}) {
-	global.panic(global.logger, sprintln(args...))
+	global.panic(global.base, sprintln(args...))
 }
 
 func Panicw(msg string, keysAndValues ...interface{}) {
-	global.panicw(global.logger, msg, keysAndValues...)
+	global.panicw(global.base, msg, keysAndValues...)
 }
 
 func Fatal(args ...interface{}) {
-	global.fatal(global.logger, args...)
+	global.fatal(global.base, args...)
 }
 
 func Fatalf(template string, args ...interface{}) {
-	global.fatalf(global.logger, template, args...)
+	global.fatalf(global.base, template, args...)
 }
 
 func Fatalln(args ...interface{}) {
-	global.fatal(global.logger, sprintln(args...))
+	global.fatal(global.base, sprintln(args...))
 }
 
 func Fatalw(msg string, keysAndValues ...interface{}) {
-	global.fatalw(global.logger, msg, keysAndValues...)
+	global.fatalw(global.base, msg, keysAndValues...)
+}
+
+func Rotate() error {
+	return global.Rotate()
 }

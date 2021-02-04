@@ -15,7 +15,7 @@ func TestLogger_WithOptions(t *testing.T) {
 }
 
 func TestLogger(t *testing.T) {
-	l := New(Development())
+	l := New(Development(), AddCaller())
 
 	l.Debug("debug", "test")
 	l.Debugf("debugf %s", "test")
@@ -81,4 +81,13 @@ func Test_LoggerPanic(t *testing.T) {
 	assert.Panics(t, func() {
 		n.Panicln("panic", "This should panic")
 	})
+}
+
+func TestLogger_LogDir(t *testing.T) {
+	l := New(WithLogDirs("log"))
+
+	l.Print("info")
+	l.Print("info")
+	l.Infoln("info, fff")
+	l.Warn("debug")
 }

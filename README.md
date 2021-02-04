@@ -33,7 +33,7 @@ func main() {
     logger := log.New(
         log.AddCaller(), 
         log.WithLogDirs("log"), 
-        log.WithLogToConsole(false), 
+        log.WithLogToStdout(false), 
         log.WithRotationConfig(log.RotationConfig{
                 MaxSize: 500, // MB
                 MaxAge: 3, // days

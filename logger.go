@@ -17,7 +17,12 @@ type logwFunc func(logger *zap.SugaredLogger, msg string, keysAndValues ...inter
 
 type Logger struct {
 	*config
-	logger *zap.SugaredLogger
+	base    *zap.SugaredLogger
+	writers []*lumberjack.Logger
+
+	print  logFunc
+	printf logfFunc
+	printw logwFunc
 
 	debug  logFunc
 	debugf logfFunc
@@ -51,12 +56,12 @@ type Logger struct {
 func New(opts ...Option) *Logger {
 	l := &Logger{
 		config: &config{
-			development:  false,
-			format:       FormatConsole,
-			level:        InfoLevel,
-			logToConsole: true,
-			addCaller:    false,
-			callerSkip:   1,
+			development: false,
+			format:      FormatJSON,
+			level:       InfoLevel,
+			logToStdout: true,
+			addCaller:   false,
+			callerSkip:  1,
 
 			maxAge:     28,
 			maxBackups: 7,
@@ -64,142 +69,161 @@ func New(opts ...Option) *Logger {
 			localTime:  true,
 			compress:   false,
 		},
-
-		logger:  zap.NewNop().Sugar(),
-		debug:   (*zap.SugaredLogger).Debug,
-		debugf:  (*zap.SugaredLogger).Debugf,
-		debugw:  (*zap.SugaredLogger).Debugw,
-		info:    (*zap.SugaredLogger).Info,
-		infof:   (*zap.SugaredLogger).Infof,
-		infow:   (*zap.SugaredLogger).Infow,
-		warn:    (*zap.SugaredLogger).Warn,
-		warnf:   (*zap.SugaredLogger).Warnf,
-		warnw:   (*zap.SugaredLogger).Warnw,
-		error:   (*zap.SugaredLogger).Error,
-		errorf:  (*zap.SugaredLogger).Errorf,
-		errorw:  (*zap.SugaredLogger).Errorw,
-		dpanic:  (*zap.SugaredLogger).DPanic,
-		dpanicf: (*zap.SugaredLogger).DPanicf,
-		dpanicw: (*zap.SugaredLogger).DPanicw,
-		panic:   (*zap.SugaredLogger).Panic,
-		panicf:  (*zap.SugaredLogger).Panicf,
-		panicw:  (*zap.SugaredLogger).Panicw,
-		fatal:   (*zap.SugaredLogger).Fatal,
-		fatalf:  (*zap.SugaredLogger).Fatalf,
-		fatalw:  (*zap.SugaredLogger).Fatalw,
+		base: zap.NewNop().Sugar(),
 	}
 
 	for _, o := range opts {
 		o.apply(l)
 	}
 
+	l.initLogFuncs()
 	l.updateLogger()
 	return l
 }
 
-func (l *Logger) newCopy() *Logger {
-	return &Logger{
-		config:  l.config.clone(),
-		logger:  zap.NewNop().Sugar(),
-		debug:   (*zap.SugaredLogger).Debug,
-		debugf:  (*zap.SugaredLogger).Debugf,
-		debugw:  (*zap.SugaredLogger).Debugw,
-		info:    (*zap.SugaredLogger).Info,
-		infof:   (*zap.SugaredLogger).Infof,
-		infow:   (*zap.SugaredLogger).Infow,
-		warn:    (*zap.SugaredLogger).Warn,
-		warnf:   (*zap.SugaredLogger).Warnf,
-		warnw:   (*zap.SugaredLogger).Warnw,
-		error:   (*zap.SugaredLogger).Error,
-		errorf:  (*zap.SugaredLogger).Errorf,
-		errorw:  (*zap.SugaredLogger).Errorw,
-		dpanic:  (*zap.SugaredLogger).DPanic,
-		dpanicf: (*zap.SugaredLogger).DPanicf,
-		dpanicw: (*zap.SugaredLogger).DPanicw,
-		panic:   (*zap.SugaredLogger).Panic,
-		panicf:  (*zap.SugaredLogger).Panicf,
-		panicw:  (*zap.SugaredLogger).Panicw,
-		fatal:   (*zap.SugaredLogger).Fatal,
-		fatalf:  (*zap.SugaredLogger).Fatalf,
-		fatalw:  (*zap.SugaredLogger).Fatalw,
+func (l *Logger) initLogFuncs() {
+	l.debug = (*zap.SugaredLogger).Debug
+	l.debugf = (*zap.SugaredLogger).Debugf
+	l.debugw = (*zap.SugaredLogger).Debugw
+	l.info = (*zap.SugaredLogger).Info
+	l.infof = (*zap.SugaredLogger).Infof
+	l.infow = (*zap.SugaredLogger).Infow
+	l.warn = (*zap.SugaredLogger).Warn
+	l.warnf = (*zap.SugaredLogger).Warnf
+	l.warnw = (*zap.SugaredLogger).Warnw
+	l.error = (*zap.SugaredLogger).Error
+	l.errorf = (*zap.SugaredLogger).Errorf
+	l.errorw = (*zap.SugaredLogger).Errorw
+	l.dpanic = (*zap.SugaredLogger).DPanic
+	l.dpanicf = (*zap.SugaredLogger).DPanicf
+	l.dpanicw = (*zap.SugaredLogger).DPanicw
+	l.panic = (*zap.SugaredLogger).Panic
+	l.panicf = (*zap.SugaredLogger).Panicf
+	l.panicw = (*zap.SugaredLogger).Panicw
+	l.fatal = (*zap.SugaredLogger).Fatal
+	l.fatalf = (*zap.SugaredLogger).Fatalf
+	l.fatalw = (*zap.SugaredLogger).Fatalw
+
+	if l.development {
+		l.print = (*zap.SugaredLogger).Debug
+		l.printf = (*zap.SugaredLogger).Debugf
+		l.printw = (*zap.SugaredLogger).Debugw
+	} else {
+		l.print = (*zap.SugaredLogger).Info
+		l.printf = (*zap.SugaredLogger).Infof
+		l.printw = (*zap.SugaredLogger).Infow
 	}
 }
 
-// update zap logger based on the new config
+// update zap base based on the new config
 func (l *Logger) updateLogger() {
-	var encoderCfg zapcore.EncoderConfig
-	if l.development {
-		encoderCfg = zap.NewDevelopmentEncoderConfig()
-	} else {
-		encoderCfg = zap.NewProductionEncoderConfig()
-		encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
-	}
-
 	var encoder zapcore.Encoder
-	switch l.format {
-	case FormatJSON:
-		encoder = zapcore.NewJSONEncoder(encoderCfg)
-	default:
-		encoder = zapcore.NewConsoleEncoder(encoderCfg)
-	}
 
-	lowPriority := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-		lvll := fromZapLevel(lvl)
-		return l.levelEnabled(lvll) && lvll < ErrorLevel
-	})
-	highPriority := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-		lvll := fromZapLevel(lvl)
-		return l.levelEnabled(lvll) && lvll >= ErrorLevel
-	})
+	if l.encoder != nil {
+		encoder = l.encoder
+	} else {
+		var encoderCfg zapcore.EncoderConfig
 
-	cores := make([]zapcore.Core, 0)
-
-	// add console log
-	if l.logToConsole {
-		cores = append(cores,
-			zapcore.NewCore(encoder, zapcore.Lock(os.Stdout), lowPriority),
-			zapcore.NewCore(encoder, zapcore.Lock(os.Stderr), highPriority),
-		)
-	}
-
-	if l.infoOutput != nil {
-		cores = append(cores, zapcore.NewCore(encoder, zapcore.Lock(zapcore.AddSync(l.infoOutput)), lowPriority))
-	}
-
-	if l.errOutput != nil {
-		cores = append(cores, zapcore.NewCore(encoder, zapcore.Lock(zapcore.AddSync(l.errOutput)), highPriority))
-	}
-
-	for _, dir := range l.logDirs {
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			_ = os.MkdirAll(dir, 0755)
+		if l.development {
+			encoderCfg = zap.NewDevelopmentEncoderConfig()
+		} else {
+			encoderCfg = zap.NewProductionEncoderConfig()
 		}
 
-		infoWriter := zapcore.AddSync(&lumberjack.Logger{
-			Filename:   filepath.Join(dir, "info.log"),
-			MaxSize:    l.maxSize,
-			MaxAge:     l.maxAge,
-			MaxBackups: l.maxBackups,
-			LocalTime:  l.localTime,
-			Compress:   l.compress,
-		})
-
-		errWriter := zapcore.AddSync(&lumberjack.Logger{
-			Filename:   filepath.Join(dir, "error.log"),
-			MaxSize:    l.maxSize,
-			MaxAge:     l.maxAge,
-			MaxBackups: l.maxBackups,
-			LocalTime:  l.localTime,
-			Compress:   l.compress,
-		})
-
-		cores = append(cores,
-			zapcore.NewCore(encoder, infoWriter, lowPriority),
-			zapcore.NewCore(encoder, errWriter, highPriority),
-		)
+		switch l.format {
+		case FormatJSON:
+			encoder = zapcore.NewJSONEncoder(encoderCfg)
+		default:
+			encoder = zapcore.NewConsoleEncoder(encoderCfg)
+		}
 	}
 
-	zapLogger := l.logger.Desugar()
+	cores := make([]zapcore.Core, 0)
+	writers := make([]*lumberjack.Logger, 0)
+
+	// add stdout log
+	if l.logToStdout {
+		stdoutCore := zapcore.NewCore(
+			encoder,
+			zapcore.Lock(os.Stdout),
+			zap.LevelEnablerFunc(l.zapLevelEnabled),
+		)
+		cores = append(cores, stdoutCore)
+	}
+
+	// add output core
+	if l.output != nil {
+		outputCore := zapcore.NewCore(
+			encoder,
+			zapcore.Lock(zapcore.AddSync(l.output)),
+			zap.LevelEnablerFunc(l.zapLevelEnabled),
+		)
+		cores = append(cores, outputCore)
+	}
+
+	// parse log dirs
+	for _, dir := range l.logDirs {
+		if dir == "" {
+			continue
+		}
+
+		for _, level := range []zapcore.Level{
+			zapcore.DebugLevel,
+			zapcore.InfoLevel,
+			zapcore.WarnLevel,
+			zapcore.ErrorLevel,
+			zapcore.DPanicLevel,
+			zapcore.PanicLevel,
+			zapcore.FatalLevel,
+		} {
+			if l.zapLevelEnabled(level) {
+				lvl := level
+
+				lvlWriter := &lumberjack.Logger{
+					Filename:   filepath.Join(dir, fmt.Sprint(lvl.String(), ".log")),
+					MaxSize:    l.maxSize,
+					MaxAge:     l.maxAge,
+					MaxBackups: l.maxBackups,
+					LocalTime:  l.localTime,
+					Compress:   l.compress,
+				}
+
+				lvlCore := zapcore.NewCore(
+					encoder,
+					zapcore.AddSync(lvlWriter),
+					zap.LevelEnablerFunc(func(l zapcore.Level) bool {
+						return l == lvl
+					}),
+				)
+
+				cores = append(cores, lvlCore)
+				writers = append(writers, lvlWriter)
+			}
+		}
+	}
+
+	// parse log files
+	for _, file := range l.logFiles {
+		if file == "" {
+			continue
+		}
+
+		writer := &lumberjack.Logger{
+			Filename:   file,
+			MaxSize:    l.maxSize,
+			MaxAge:     l.maxAge,
+			MaxBackups: l.maxBackups,
+			LocalTime:  l.localTime,
+			Compress:   l.compress,
+		}
+
+		fileCore := zapcore.NewCore(encoder, zapcore.AddSync(writer), zap.LevelEnablerFunc(l.zapLevelEnabled))
+
+		cores = append(cores, fileCore)
+		writers = append(writers, writer)
+	}
+
+	zapLogger := l.base.Desugar()
 
 	zapOptions := []zap.Option{
 		// set new zap cores
@@ -221,134 +245,165 @@ func (l *Logger) updateLogger() {
 		zapOptions = append(zapOptions, zap.WithCaller(false))
 	}
 
-	l.logger = zapLogger.WithOptions(zapOptions...).Sugar()
+	l.base = zapLogger.WithOptions(zapOptions...).Sugar()
+	l.writers = writers
 }
 
-func (l *Logger) levelEnabled(lvl Level) bool {
-	return l.development || l.level.Enabled(lvl)
+func (l *Logger) zapLevelEnabled(lvl zapcore.Level) bool {
+	return l.development || l.level.Enabled(fromZapLevel(lvl))
 }
 
 func (l *Logger) WithOptions(opts ...Option) *Logger {
-	c := l.newCopy()
+	c := &Logger{
+		config: l.config.clone(),
+		base:   zap.NewNop().Sugar(),
+	}
 
 	for _, o := range opts {
 		o.apply(c)
 	}
 
+	c.initLogFuncs()
 	c.updateLogger()
 	return c
 }
 
+func (l *Logger) Print(args ...interface{}) {
+	l.print(l.base, args...)
+}
+
+func (l *Logger) Printf(format string, args ...interface{}) {
+	l.printf(l.base, format, args...)
+}
+
+func (l *Logger) Println(args ...interface{}) {
+	l.print(l.base, sprintln(args...))
+}
+
+func (l *Logger) Printw(msg string, keysAndValues ...interface{}) {
+	l.printw(l.base, msg, keysAndValues...)
+}
+
 func (l *Logger) Debug(args ...interface{}) {
-	l.debug(l.logger, args...)
+	l.debug(l.base, args...)
 }
 
 func (l *Logger) Debugf(format string, args ...interface{}) {
-	l.debugf(l.logger, format, args...)
+	l.debugf(l.base, format, args...)
 }
 
 func (l *Logger) Debugln(args ...interface{}) {
-	l.debug(l.logger, sprintln(args...))
+	l.debug(l.base, sprintln(args...))
 }
 
 func (l *Logger) Debugw(msg string, keysAndValues ...interface{}) {
-	l.debugw(l.logger, msg, keysAndValues...)
+	l.debugw(l.base, msg, keysAndValues...)
 }
 
 func (l *Logger) Info(args ...interface{}) {
-	l.info(l.logger, args...)
+	l.info(l.base, args...)
 }
 
 func (l *Logger) Infof(format string, args ...interface{}) {
-	l.infof(l.logger, format, args...)
+	l.infof(l.base, format, args...)
 }
 
 func (l *Logger) Infoln(args ...interface{}) {
-	l.info(l.logger, sprintln(args...))
+	l.info(l.base, sprintln(args...))
 }
 
 func (l *Logger) Infow(msg string, keysAndValues ...interface{}) {
-	l.infow(l.logger, msg, keysAndValues...)
+	l.infow(l.base, msg, keysAndValues...)
 }
 
 func (l *Logger) Warn(args ...interface{}) {
-	l.warn(l.logger, args...)
+	l.warn(l.base, args...)
 }
 
 func (l *Logger) Warnf(template string, args ...interface{}) {
-	l.warnf(l.logger, template, args...)
+	l.warnf(l.base, template, args...)
 }
 
 func (l *Logger) Warnln(args ...interface{}) {
-	l.warn(l.logger, sprintln(args...))
+	l.warn(l.base, sprintln(args...))
 }
 
 func (l *Logger) Warnw(msg string, keysAndValues ...interface{}) {
-	l.warnw(l.logger, msg, keysAndValues...)
+	l.warnw(l.base, msg, keysAndValues...)
 }
 
 func (l *Logger) Error(args ...interface{}) {
-	l.error(l.logger, args...)
+	l.error(l.base, args...)
 }
 
 func (l *Logger) Errorf(template string, args ...interface{}) {
-	l.errorf(l.logger, template, args...)
+	l.errorf(l.base, template, args...)
 }
 
 func (l *Logger) Errorln(args ...interface{}) {
-	l.error(l.logger, sprintln(args...))
+	l.error(l.base, sprintln(args...))
 }
 
 func (l *Logger) Errorw(msg string, keysAndValues ...interface{}) {
-	l.errorw(l.logger, msg, keysAndValues...)
+	l.errorw(l.base, msg, keysAndValues...)
 }
 
 func (l *Logger) DPanic(args ...interface{}) {
-	l.dpanic(l.logger, args...)
+	l.dpanic(l.base, args...)
 }
 
 func (l *Logger) DPanicf(template string, args ...interface{}) {
-	l.dpanicf(l.logger, template, args...)
+	l.dpanicf(l.base, template, args...)
 }
 
 func (l *Logger) DPanicln(args ...interface{}) {
-	l.dpanic(l.logger, sprintln(args...))
+	l.dpanic(l.base, sprintln(args...))
 }
 
 func (l *Logger) DPanicw(msg string, keysAndValues ...interface{}) {
-	l.dpanicw(l.logger, msg, keysAndValues...)
+	l.dpanicw(l.base, msg, keysAndValues...)
 }
 
 func (l *Logger) Panic(args ...interface{}) {
-	l.panic(l.logger, args...)
+	l.panic(l.base, args...)
 }
 
 func (l *Logger) Panicf(template string, args ...interface{}) {
-	l.panicf(l.logger, template, args...)
+	l.panicf(l.base, template, args...)
 }
 
 func (l *Logger) Panicln(args ...interface{}) {
-	l.panic(l.logger, sprintln(args...))
+	l.panic(l.base, sprintln(args...))
 }
 
 func (l *Logger) Panicw(msg string, keysAndValues ...interface{}) {
-	l.panicw(l.logger, msg, keysAndValues...)
+	l.panicw(l.base, msg, keysAndValues...)
 }
 
 func (l *Logger) Fatal(args ...interface{}) {
-	l.fatal(l.logger, args...)
+	l.fatal(l.base, args...)
 }
 
 func (l *Logger) Fatalf(template string, args ...interface{}) {
-	l.fatalf(l.logger, template, args...)
+	l.fatalf(l.base, template, args...)
 }
 
 func (l *Logger) Fatalln(args ...interface{}) {
-	l.fatal(l.logger, sprintln(args...))
+	l.fatal(l.base, sprintln(args...))
 }
 
 func (l *Logger) Fatalw(msg string, keysAndValues ...interface{}) {
-	l.fatalw(l.logger, msg, keysAndValues...)
+	l.fatalw(l.base, msg, keysAndValues...)
+}
+
+func (l *Logger) Rotate() error {
+	for _, w := range l.writers {
+		if err := w.Rotate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func sprintln(args ...interface{}) string {

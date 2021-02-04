@@ -1,17 +1,22 @@
 package log
 
-import "io"
+import (
+	"io"
+
+	"go.uber.org/zap/zapcore"
+)
 
 type config struct {
-	development  bool
-	format       Format
-	errOutput    io.Writer
-	infoOutput   io.Writer
-	level        Level
-	logDirs      []string
-	logToConsole bool
-	addCaller    bool
-	callerSkip   int
+	development bool
+	encoder     zapcore.Encoder
+	format      Format
+	output      io.Writer
+	level       Level
+	logDirs     []string
+	logFiles    []string
+	logToStdout bool
+	addCaller   bool
+	callerSkip  int
 
 	maxAge     int
 	maxBackups int

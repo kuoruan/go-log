@@ -1,6 +1,10 @@
 package log
 
-import "io"
+import (
+	"io"
+
+	"go.uber.org/zap/zapcore"
+)
 
 type Option interface {
 	apply(*Logger)
@@ -34,25 +38,39 @@ func WithDevelopment(development bool) Option {
 	})
 }
 
-func WithOutput(infoOut, errOut io.Writer) Option {
+func WithEncoder(encoder zapcore.Encoder) Option {
 	return optionFunc(func(l *Logger) {
-		l.infoOutput = infoOut
-		l.errOutput = errOut
+		l.encoder = encoder
 	})
 }
 
-func WithLogToConsole(logToConsole bool) Option {
+func WithOutput(output io.Writer) Option {
 	return optionFunc(func(l *Logger) {
-		l.logToConsole = logToConsole
+		l.output = output
+	})
+}
+
+func WithLogToStdout(logToStdout bool) Option {
+	return optionFunc(func(l *Logger) {
+		l.logToStdout = logToStdout
 	})
 }
 
 func WithLogDirs(dirs ...string) Option {
 	return optionFunc(func(l *Logger) {
-		d := make([]string, len(dirs))
-		copy(d, dirs)
+		dst := make([]string, len(dirs))
+		copy(dst, dirs)
 
-		l.logDirs = d
+		l.logDirs = dst
+	})
+}
+
+func WithLogFiles(files ...string) Option {
+	return optionFunc(func(l *Logger) {
+		dst := make([]string, len(files))
+		copy(dst, files)
+
+		l.logFiles = dst
 	})
 }
 
