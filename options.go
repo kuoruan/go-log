@@ -6,25 +6,79 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type Option interface {
-	apply(*Logger)
+type RotationConfig struct {
+	MaxSize    int  `json:"maxSize"`    // megabytes
+	MaxAge     int  `json:"maxAge"`     // days
+	MaxBackups int  `json:"maxBackups"` // count
+	LocalTime  bool `json:"localTime"`
+	Compress   bool `json:"compress"`
 }
 
-type optionFunc func(*Logger)
+type options struct {
+	RotationConfig
 
-func (f optionFunc) apply(log *Logger) {
+	Level   Level
+	Format  Format
+	Encoder zapcore.Encoder
+
+	Development bool
+
+	Output      io.Writer
+	LogToStdout bool
+	LogDirs     []string
+	LogFiles    []string
+
+	AddCaller  bool
+	CallerSkip int
+}
+
+func (o options) Clone() options {
+	c := o
+
+	if c.Encoder != nil {
+		c.Encoder = c.Encoder.Clone()
+	}
+
+	if len(c.LogDirs) > 0 {
+		d := make([]string, len(c.LogDirs))
+
+		copy(d, c.LogDirs)
+		c.LogDirs = d
+	}
+
+	if len(c.LogFiles) > 0 {
+		d := make([]string, len(c.LogFiles))
+
+		copy(d, c.LogFiles)
+		c.LogFiles = d
+	}
+
+	return c
+}
+
+func (o options) ZapLevelEnabled(lvl zapcore.Level) bool {
+	return o.Development || o.Level.Enabled(fromZapLevel(lvl))
+}
+
+type Option interface {
+	apply(*options)
+}
+
+type optionFunc func(*options)
+
+func (f optionFunc) apply(log *options) {
 	f(log)
 }
 
 func WithLevel(lvl Level) Option {
-	return optionFunc(func(l *Logger) {
-		l.level = lvl
+	return optionFunc(func(l *options) {
+		l.Level = lvl
 	})
 }
 
 func WithFormat(format Format) Option {
-	return optionFunc(func(l *Logger) {
-		l.format = format
+	return optionFunc(func(l *options) {
+		l.Format = format
 	})
 }
 
@@ -33,69 +87,69 @@ func Development() Option {
 }
 
 func WithDevelopment(development bool) Option {
-	return optionFunc(func(l *Logger) {
-		l.development = development
+	return optionFunc(func(l *options) {
+		l.Development = development
 	})
 }
 
 func WithEncoder(encoder zapcore.Encoder) Option {
-	return optionFunc(func(l *Logger) {
-		l.encoder = encoder
+	return optionFunc(func(l *options) {
+		l.Encoder = encoder
 	})
 }
 
 func WithOutput(output io.Writer) Option {
-	return optionFunc(func(l *Logger) {
-		l.output = output
+	return optionFunc(func(l *options) {
+		l.Output = output
 	})
 }
 
 func WithLogToStdout(logToStdout bool) Option {
-	return optionFunc(func(l *Logger) {
-		l.logToStdout = logToStdout
+	return optionFunc(func(l *options) {
+		l.LogToStdout = logToStdout
 	})
 }
 
 func WithLogDirs(dirs ...string) Option {
-	return optionFunc(func(l *Logger) {
+	return optionFunc(func(l *options) {
 		dst := make([]string, len(dirs))
 		copy(dst, dirs)
 
-		l.logDirs = dst
+		l.LogDirs = dst
 	})
 }
 
 func WithLogFiles(files ...string) Option {
-	return optionFunc(func(l *Logger) {
+	return optionFunc(func(l *options) {
 		dst := make([]string, len(files))
 		copy(dst, files)
 
-		l.logFiles = dst
+		l.LogFiles = dst
 	})
 }
 
 func WithRotationConfig(config RotationConfig) Option {
-	return optionFunc(func(l *Logger) {
+	return optionFunc(func(l *options) {
 		if config.MaxAge > 0 {
-			l.maxAge = config.MaxAge
+			l.MaxAge = config.MaxAge
 		}
 
 		if config.MaxBackups > 0 {
-			l.maxBackups = config.MaxBackups
+			l.MaxBackups = config.MaxBackups
 		}
 
 		if config.MaxSize > 0 {
-			l.maxSize = config.MaxSize
+			l.MaxSize = config.MaxSize
 		}
 
-		l.compress = config.Compress
-		l.localTime = config.LocalTime
+		l.Compress = config.Compress
+		l.LocalTime = config.LocalTime
 	})
 }
 
 func WithCaller(caller bool) Option {
-	return optionFunc(func(l *Logger) {
-		l.addCaller = caller
+	return optionFunc(func(l *options) {
+		l.AddCaller = caller
 	})
 }
 
@@ -104,15 +158,7 @@ func AddCaller() Option {
 }
 
 func AddCallerSkip(skip int) Option {
-	return optionFunc(func(l *Logger) {
-		l.callerSkip += skip
+	return optionFunc(func(l *options) {
+		l.CallerSkip += skip
 	})
-}
-
-type RotationConfig struct {
-	MaxSize    int  `json:"maxSize"`    // megabytes
-	MaxAge     int  `json:"maxAge"`     // days
-	MaxBackups int  `json:"maxBackups"` // count
-	LocalTime  bool `json:"localTime"`
-	Compress   bool `json:"compress"`
 }
