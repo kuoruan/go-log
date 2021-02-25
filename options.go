@@ -14,6 +14,23 @@ type RotationConfig struct {
 	Compress   bool `json:"compress"`
 }
 
+func (c RotationConfig) apply(o *options) {
+	if c.MaxAge > 0 {
+		o.MaxAge = c.MaxAge
+	}
+
+	if c.MaxBackups > 0 {
+		o.MaxBackups = c.MaxBackups
+	}
+
+	if c.MaxSize > 0 {
+		o.MaxSize = c.MaxSize
+	}
+
+	o.Compress = c.Compress
+	o.LocalTime = c.LocalTime
+}
+
 type options struct {
 	RotationConfig
 
@@ -125,25 +142,6 @@ func WithLogFiles(files ...string) Option {
 		copy(dst, files)
 
 		l.LogFiles = dst
-	})
-}
-
-func WithRotationConfig(config RotationConfig) Option {
-	return optionFunc(func(l *options) {
-		if config.MaxAge > 0 {
-			l.MaxAge = config.MaxAge
-		}
-
-		if config.MaxBackups > 0 {
-			l.MaxBackups = config.MaxBackups
-		}
-
-		if config.MaxSize > 0 {
-			l.MaxSize = config.MaxSize
-		}
-
-		l.Compress = config.Compress
-		l.LocalTime = config.LocalTime
 	})
 }
 

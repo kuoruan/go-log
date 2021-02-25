@@ -31,16 +31,16 @@ import "go.kuoruan.net/log"
 
 func main() {
     logger := log.New(
+		log.RotationConfig{
+			MaxSize: 500, // MB
+			MaxAge: 3, // days
+			MaxBackups: 7,
+			LocalTime: true,
+			Compress: true,
+		},
         log.AddCaller(), 
         log.WithLogDirs("log"), 
-        log.WithLogToStdout(false), 
-        log.WithRotationConfig(log.RotationConfig{
-                MaxSize: 500, // MB
-                MaxAge: 3, // days
-                MaxBackups: 7,
-                LocalTime: true,
-                Compress: true,
-        }),
+        log.WithLogToStdout(false),
     )
     
     logger.Info("This is info log")
