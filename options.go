@@ -121,6 +121,10 @@ func WithOutput(output io.Writer) Option {
 	})
 }
 
+func LogToStdout() Option {
+	return WithLogToStdout(true)
+}
+
 func WithLogToStdout(logToStdout bool) Option {
 	return optionFunc(func(l *options) {
 		l.LogToStdout = logToStdout
