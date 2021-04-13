@@ -50,24 +50,34 @@ type options struct {
 }
 
 func (o options) Clone() options {
-	c := o
+	c := options{
+		RotationConfig: o.RotationConfig,
+		Level:          o.Level,
+		Format:         o.Format,
 
-	if c.Encoder != nil {
-		c.Encoder = c.Encoder.Clone()
+		Development: o.Development,
+
+		Output:      o.Output,
+		LogToStdout: o.LogToStdout,
+
+		AddCaller:  o.AddCaller,
+		CallerSkip: o.CallerSkip,
 	}
 
-	if len(c.LogDirs) > 0 {
-		d := make([]string, len(c.LogDirs))
-
-		copy(d, c.LogDirs)
-		c.LogDirs = d
+	if o.Encoder != nil {
+		c.Encoder = o.Encoder.Clone()
 	}
 
-	if len(c.LogFiles) > 0 {
-		d := make([]string, len(c.LogFiles))
+	if len(o.LogDirs) > 0 {
+		c.LogDirs = make([]string, len(o.LogDirs))
 
-		copy(d, c.LogFiles)
-		c.LogFiles = d
+		copy(c.LogDirs, o.LogDirs)
+	}
+
+	if len(o.LogFiles) > 0 {
+		c.LogFiles = make([]string, len(o.LogFiles))
+
+		copy(c.LogFiles, o.LogFiles)
 	}
 
 	return c

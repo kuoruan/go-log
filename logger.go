@@ -192,6 +192,7 @@ func newLogger(opts options) *Logger {
 	l := &Logger{
 		base:    zap.New(zapcore.NewTee(cores...), zapOptions...).Sugar(),
 		writers: writers,
+		options: opts,
 
 		debug:   (*zap.SugaredLogger).Debug,
 		debugf:  (*zap.SugaredLogger).Debugf,
