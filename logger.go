@@ -90,8 +90,12 @@ func newLogger(opts options) *Logger {
 
 		if opts.Development {
 			encoderCfg = zap.NewDevelopmentEncoderConfig()
+			encoderCfg.EncodeTime = zapcore.RFC3339TimeEncoder
+			encoderCfg.EncodeCaller = zapcore.FullCallerEncoder
 		} else {
 			encoderCfg = zap.NewProductionEncoderConfig()
+			encoderCfg.TimeKey = "time"
+			encoderCfg.EncodeTime = zapcore.RFC3339TimeEncoder
 		}
 
 		switch opts.Format {
